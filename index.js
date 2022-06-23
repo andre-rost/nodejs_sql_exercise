@@ -1,19 +1,20 @@
 require("dotenv").config();
 const express = require('express');
-const { Pool } = require('pg');
+const db = require("./db/client");
 const app = express()
+const  { validationResult }  = require("express-validator");
+const { usersValidation } = require("./validators/usersValidation");
+const { ordersValidation } = require("./validators/ordersValidation");
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000
-
-const pool = new Pool()
 
 // USERS //
 
 // GET ALL USERS
 
 app.get("/api/users", (req, res) => {
-  pool
+  db
     .query("SELECT * FROM users;")
     .then((data) => res.json(data.rows))
     .catch((error) => res.sendStatus(500));
@@ -25,7 +26,7 @@ app.get("/api/users/:id", (req, res) => {
 
   const { id } = req.params;
 
-    pool
+    db
       .query("SELECT * FROM users WHERE id = $1", [id])
       .then((data) => res.json(data.rows))
       .catch((error) => res.sendStatus(500));
@@ -35,7 +36,7 @@ app.get("/api/users/:id", (req, res) => {
     values: [id],
   };
 
-  pool
+  db
     .query(getOneUser)
     .then((data) => res.json(data.rows))
     .catch((error) => res.sendStatus(500));
@@ -43,9 +44,14 @@ app.get("/api/users/:id", (req, res) => {
 
 // CREATE ONE USER
 
-app.post("/api/users", (req, res) => {
+app.post("/api/users", usersValidation, (req, res) => {
 
   const { id, first_name, last_name, age, active } = req.body;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json(errors.array());
+  }
 
   const createOneUser = {
     text: `
@@ -59,7 +65,7 @@ app.post("/api/users", (req, res) => {
     values: [id, first_name, last_name, age, active],
   };
 
-  pool
+  db
     .query(createOneUser)
     .then((data) => res.status(201).json(data.rows[0]))
     .catch((error) => res.sendStatus(500));
@@ -67,11 +73,16 @@ app.post("/api/users", (req, res) => {
 
 // UPDATE ONE USER
 
-app.put("/api/users/:id", (req, res) => {
+app.put("/api/users/:id", usersValidation, (req, res) => {
 
   const { id } = req.params;
  
   const { first_name, last_name, age, active } = req.body;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json(errors.array());
+  }
 
   const updateOneUser = {
     text: `
@@ -88,7 +99,7 @@ app.put("/api/users/:id", (req, res) => {
     values: [first_name, last_name, age, active, id],
   };
 
-  pool
+  db
     .query(updateOneUser)
     .then((data) => res.json(data.rows))
     .catch((e) => res.status(500).send(e.message));
@@ -105,7 +116,7 @@ app.delete("/api/users/:id", (req, res) => {
     values: [id],
   };
 
-  pool
+  db
     .query(deleteOneUser)
     .then((data) => res.json(data.rows))
     .catch((e) => res.status(500).send(e.message));
@@ -116,7 +127,7 @@ app.delete("/api/users/:id", (req, res) => {
 // GET ALL ORDERS
 
 app.get("/api/orders", (req, res) => {
-  pool
+  db
     .query("SELECT * FROM orders;")
     .then((data) => res.json(data.rows))
     .catch((error) => res.sendStatus(500));
@@ -128,7 +139,7 @@ app.get("/api/orders/:id", (req, res) => {
 
   const { id } = req.params;
 
-    pool
+    db
       .query("SELECT * FROM orders WHERE id = $1", [id])
       .then((data) => res.json(data.rows))
       .catch((error) => res.sendStatus(500));
@@ -138,7 +149,7 @@ app.get("/api/orders/:id", (req, res) => {
     values: [id],
   };
 
-  pool
+  db
     .query(getOneOrder)
     .then((data) => res.json(data.rows))
     .catch((error) => res.sendStatus(500));
@@ -146,9 +157,14 @@ app.get("/api/orders/:id", (req, res) => {
 
 // CREATE ONE ORDER
 
-app.post("/api/orders", (req, res) => {
+app.post("/api/orders", ordersValidation, (req, res) => {
 
   const { id, price, date, user_id } = req.body;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json(errors.array());
+  }
 
   const createOneOrder = {
     text: `
@@ -162,7 +178,7 @@ app.post("/api/orders", (req, res) => {
     values: [id, price, date, user_id],
   };
 
-  pool
+  db
     .query(createOneOrder)
     .then((data) => res.status(201).json(data.rows[0]))
     .catch((error) => res.sendStatus(500));
@@ -170,11 +186,16 @@ app.post("/api/orders", (req, res) => {
 
 // UPDATE ONE ORDER
 
-app.put("/api/orders/:id", (req, res) => {
+app.put("/api/orders/:id", ordersValidation, (req, res) => {
 
   const { id } = req.params;
  
   const { price, date, user_id } = req.body;
+
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(422).json(errors.array());
+  }
 
   const updateOneOrder = {
     text: `
@@ -190,7 +211,7 @@ app.put("/api/orders/:id", (req, res) => {
     values: [price, date, user_id, id],
   };
 
-  pool
+  db
     .query(updateOneOrder)
     .then((data) => res.json(data.rows))
     .catch((e) => res.status(500).send(e.message));
@@ -207,7 +228,7 @@ app.delete("/api/orders/:id", (req, res) => {
     values: [id],
   };
 
-  pool
+  db
     .query(deleteOneOrder)
     .then((data) => res.json(data.rows))
     .catch((e) => res.status(500).send(e.message));
